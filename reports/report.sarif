@@ -1,0 +1,269 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "sudo-check",
+          "version": "1.0.0",
+          "informationUri": "https://github.com/Florian/sudo-check",
+          "rules": [
+            {
+              "id": "SUDO-DEF-001",
+              "shortDescription": {
+                "text": "Missing secure_path Configuration"
+              }
+            },
+            {
+              "id": "SUDO-DEF-003",
+              "shortDescription": {
+                "text": "Missing or Disabled use_pty"
+              }
+            },
+            {
+              "id": "SUDO-DEF-004",
+              "shortDescription": {
+                "text": "Dangerous Environment Variables Preserved (env_keep)"
+              }
+            },
+            {
+              "id": "SUDO-DEF-005",
+              "shortDescription": {
+                "text": "visiblepw Flag Enabled"
+              }
+            },
+            {
+              "id": "SUDO-GTFO-002",
+              "shortDescription": {
+                "text": "Passwordless Dangerous Sudo Binary allowed: find (file-read)"
+              }
+            },
+            {
+              "id": "SUDO-CMD-004",
+              "shortDescription": {
+                "text": "Wildcard in Command Definition"
+              }
+            },
+            {
+              "id": "SUDO-CMD-001",
+              "shortDescription": {
+                "text": "Negated Command Policy"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "SUDO-DEF-001",
+          "message": {
+            "text": "The global 'secure_path' default is not defined. Sudo will run commands using the calling user's PATH variable, which can lead to local command hijacking/privilege escalation if the user's PATH contains writable directories.\nRemediation: Add 'Defaults secure_path=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"' to the sudoers file."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-DEF-003",
+          "message": {
+            "text": "The 'use_pty' flag is not enabled globally. Without a pseudo-terminal (PTY) allocation, processes run via sudo can write to the terminal's input buffer using TIOCSTI ioctls, enabling terminal hijacking and command injection back into the user's shell.\nRemediation: Add 'Defaults use_pty' globally to the sudoers file."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-DEF-004",
+          "message": {
+            "text": "The policy explicitly preserves dangerous environment variables in env_keep: LD_PRELOAD, PYTHONPATH. This can allow local users to inject code into elevated processes (e.g. via dynamic linker hijack LD_PRELOAD, or PYTHONPATH/PERL5LIB library paths).\nRemediation: Remove dynamic library path and interpreter path environment variables from 'env_keep' additions in sudoers Defaults."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-DEF-005",
+          "message": {
+            "text": "The 'visiblepw' option is enabled globally. This forces sudo to print the password in cleartext if prompting on a terminal, exposing it to shoulder surfing or screen logs.\nRemediation: Remove 'Defaults visiblepw' or explicitly set 'Defaults !visiblepw'."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-GTFO-002",
+          "message": {
+            "text": "The user(s) [bob] can run '/usr/bin/find' via sudo without a password (NOPASSWD) using the 'file-read' bypass method. This enables instant root privilege escalation.\nGTFObins Context: This uses `cat` to actually read the file, but since permissions are not dropped, it's executed with the same privileges as `find`.\nRemediation: Remove this binary from sudoers or replace it with a wrapper script. Example exploit command:\nfind /path/to/input-file -exec cat {} \\;"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-GTFO-002",
+          "message": {
+            "text": "The user(s) [bob] can run '/usr/bin/find' via sudo without a password (NOPASSWD) using the 'file-write' bypass method. This enables instant root privilege escalation.\nGTFObins Context: `DATA` is a format string, it supports some escape sequences.\nRemediation: Remove this binary from sudoers or replace it with a wrapper script. Example exploit command:\nfind / -fprintf /path/to/output-file DATA -quit"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-GTFO-002",
+          "message": {
+            "text": "The user(s) [bob] can run '/usr/bin/find' via sudo without a password (NOPASSWD) using the 'shell' bypass method. This enables instant root privilege escalation.\nRemediation: Remove this binary from sudoers or replace it with a wrapper script. Example exploit command:\nfind . -exec /bin/sh \\; -quit"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-GTFO-002",
+          "message": {
+            "text": "The user(s) [bob] can run '/usr/bin/awk' via sudo without a password (NOPASSWD) using the 'file-read' bypass method. This enables instant root privilege escalation.\nRemediation: Remove this binary from sudoers or replace it with a wrapper script. Example exploit command:\nmawk '//' /path/to/input-file"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-GTFO-002",
+          "message": {
+            "text": "The user(s) [bob] can run '/usr/bin/awk' via sudo without a password (NOPASSWD) using the 'file-write' bypass method. This enables instant root privilege escalation.\nRemediation: Remove this binary from sudoers or replace it with a wrapper script. Example exploit command:\nmawk 'BEGIN { print \"DATA\" \u003e \"/path/to/output-file\" }'"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-GTFO-002",
+          "message": {
+            "text": "The user(s) [bob] can run '/usr/bin/awk' via sudo without a password (NOPASSWD) using the 'shell' bypass method. This enables instant root privilege escalation.\nRemediation: Remove this binary from sudoers or replace it with a wrapper script. Example exploit command:\nmawk 'BEGIN {system(\"/bin/sh\")}'"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-CMD-004",
+          "message": {
+            "text": "The command '/usr/bin/cat /var/log/*' allowed for user(s) [bob] contains wildcards. Arguments matching wildcards in sudoers can often be bypassed using directory traversals (e.g. '/var/log/../../etc/shadow') or injection flags.\nRemediation: Avoid wildcards in command paths. Use specific paths or write wrapper scripts that sanitize inputs before executing commands."
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-GTFO-002",
+          "message": {
+            "text": "The user(s) [bob] can run '/usr/bin/cat /var/log/*' via sudo without a password (NOPASSWD) using the 'file-read' bypass method. This enables instant root privilege escalation.\nRemediation: Remove this binary from sudoers or replace it with a wrapper script. Example exploit command:\ncat /path/to/input-file"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SUDO-CMD-001",
+          "message": {
+            "text": "The policy contains a negated command '/usr/bin/passwd' for user(s) [bob]. Sudo command negation is easily bypassed by symlinking the binary, copying it to another location, or executing it with slightly different paths/arguments.\nRemediation: Avoid using negated commands (!) to enforce restrictions. Instead, use a strict allowlist of permitted commands."
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_policy.json"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
