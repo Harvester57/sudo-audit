@@ -13,10 +13,10 @@ func TestClient_CheckBinary(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		binary        string
-		expectMatch   bool
-		expectShell   bool
+		name        string
+		binary      string
+		expectMatch bool
+		expectShell bool
 	}{
 		{"KnownBinary_Find", "find", true, true},
 		{"KnownBinary_Vim", "vim", true, false},

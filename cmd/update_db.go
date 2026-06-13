@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	gtfoBinsURL    = "https://gtfobins.org/api.json"
-	maxDownloadMB  = 50
+	gtfoBinsURL     = "https://gtfobins.org/api.json"
+	maxDownloadMB   = 50
 	downloadTimeout = 30 * time.Second
 )
 

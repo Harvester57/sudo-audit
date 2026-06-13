@@ -671,5 +671,3 @@ func WriteHTMLReport(result *audit.AuditResult, w io.Writer) error {
 
 	return t.Execute(w, result)
 }
-
-

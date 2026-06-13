@@ -162,7 +162,7 @@ func TestWritePDFReport(t *testing.T) {
 	if buf.Len() == 0 {
 		t.Errorf("Generated PDF is empty")
 	}
-	
+
 	out := buf.String()
 	if !strings.HasPrefix(out, "%PDF-") {
 		t.Errorf("Generated file is not a valid PDF")

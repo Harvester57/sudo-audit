@@ -226,4 +226,3 @@ func AuditSudoersPermissions(filePath string) []Finding {
 
 	return findings
 }
-
