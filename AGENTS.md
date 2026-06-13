@@ -51,9 +51,39 @@ Build the binary locally using:
 $env:CGO_ENABLED=0; go build -ldflags="-s -w" -trimpath -o sudo-check.exe
 ```
 
-### Running Tests
-Unit tests are written for `pkg/gtfobins`, `pkg/audit`, and `pkg/report` using table-driven tests and fixtures in `testdata/`. Run all tests and coverage using:
-```powershell
-go test -v -race -cover ./...
-```
-Ensure all tests pass and `go vet ./...` succeeds before proposing any functional updates.
+### Running Tests & CI Checks
+To ensure the CI build will pass, agents must run the following checks locally:
+
+1. **Unit Tests**:
+   Run all tests and coverage using:
+   ```powershell
+   go test -v -race -cover ./...
+   ```
+   *(Note: If running on a Windows system without Cgo/gcc configured, run without `-race`: `go test -v -cover ./...`)*
+
+2. **Static Analysis**:
+   Run `go vet` to catch common mistakes:
+   ```powershell
+   go vet ./...
+   ```
+
+3. **Code Formatting**:
+   Ensure all files are formatted according to `gofmt`. Run the check to list unformatted files:
+   ```powershell
+   gofmt -l .
+   ```
+   To automatically format all files, run:
+   ```powershell
+   gofmt -w .
+   ```
+
+4. **Module Tidiness**:
+   Verify that dependencies are tidy:
+   ```powershell
+   go mod tidy
+   git diff --exit-code go.mod go.sum
+   ```
+
+**CRITICAL RULE**: Agents MUST run all unit tests and verify they pass after making any changes to the codebase. Ensure all tests pass, `go vet ./...` succeeds, code is properly formatted via `gofmt`, and modules are tidy before proposing any updates or completing the task.
+
+
