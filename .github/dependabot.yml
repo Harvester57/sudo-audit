@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "go-deps"
+    assignees:
+    - "Harvester57"
+    groups:
+      go-dependencies:
+        applies-to: version-updates
+        patterns:
+        - "*"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    commit-message:
+      prefix: "actions"
+    assignees:
+    - "Harvester57"
+    schedule:
+      interval: weekly
+    groups:
+      actions-dependencies:
+        applies-to: version-updates
+        patterns:
+        - "*"
