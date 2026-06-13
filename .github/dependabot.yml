@@ -15,4 +15,4 @@ updates:
     assignees:
     - "Harvester57"
     schedule:
-      interval: weekly
+      interval: daily
