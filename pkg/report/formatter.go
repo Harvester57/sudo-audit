@@ -23,18 +23,13 @@ func GenerateReports(result *audit.AuditResult, formats []string, outputDir stri
 		format = strings.ToLower(strings.TrimSpace(format))
 		switch format {
 		case "text", "txt":
-			var outPath string
 			if outputDir != "" {
-				outPath = filepath.Join(outputDir, "report.txt")
-				f, err := os.Create(outPath)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create text report file: %w", err)
-				}
-				if err := WriteTextReport(result, f); err != nil {
-					f.Close()
+				outPath := filepath.Join(outputDir, "report.txt")
+				if err := writeToFile(outPath, func(w *os.File) error {
+					return WriteTextReport(result, w)
+				}); err != nil {
 					return nil, fmt.Errorf("failed to write text report: %w", err)
 				}
-				f.Close()
 				generated["text"] = outPath
 			} else {
 				// If no output dir, write to stdout
@@ -48,48 +43,51 @@ func GenerateReports(result *audit.AuditResult, formats []string, outputDir stri
 				continue // SARIF requires an output file/dir
 			}
 			outPath := filepath.Join(outputDir, "report.sarif")
-			f, err := os.Create(outPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create SARIF report file: %w", err)
-			}
-			if err := WriteSarifReport(result, f); err != nil {
-				f.Close()
+			if err := writeToFile(outPath, func(w *os.File) error {
+				return WriteSarifReport(result, w)
+			}); err != nil {
 				return nil, fmt.Errorf("failed to write SARIF report: %w", err)
 			}
-			f.Close()
 			generated["sarif"] = outPath
 		case "html":
 			if outputDir == "" {
 				continue
 			}
 			outPath := filepath.Join(outputDir, "report.html")
-			f, err := os.Create(outPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create HTML report file: %w", err)
-			}
-			if err := WriteHTMLReport(result, f); err != nil {
-				f.Close()
+			if err := writeToFile(outPath, func(w *os.File) error {
+				return WriteHTMLReport(result, w)
+			}); err != nil {
 				return nil, fmt.Errorf("failed to write HTML report: %w", err)
 			}
-			f.Close()
 			generated["html"] = outPath
 		case "pdf":
 			if outputDir == "" {
 				continue
 			}
 			outPath := filepath.Join(outputDir, "report.pdf")
-			f, err := os.Create(outPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create PDF report file: %w", err)
-			}
-			if err := WritePDFReport(result, f); err != nil {
-				f.Close()
+			if err := writeToFile(outPath, func(w *os.File) error {
+				return WritePDFReport(result, w)
+			}); err != nil {
 				return nil, fmt.Errorf("failed to write PDF report: %w", err)
 			}
-			f.Close()
 			generated["pdf"] = outPath
 		}
 	}
 
 	return generated, nil
+}
+
+// writeToFile creates a file at path, calls fn to write content, and ensures the file is properly closed.
+// Close errors are propagated since they can indicate data loss (e.g., buffered writes failing on close).
+func writeToFile(path string, fn func(w *os.File) error) (err error) {
+	f, createErr := os.Create(path)
+	if createErr != nil {
+		return fmt.Errorf("failed to create file %s: %w", path, createErr)
+	}
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close file %s: %w", path, closeErr)
+		}
+	}()
+	return fn(f)
 }

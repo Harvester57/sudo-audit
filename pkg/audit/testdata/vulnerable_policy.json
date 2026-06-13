@@ -1,0 +1,51 @@
+{
+  "Defaults": [
+    {
+      "Options": [
+        { "visiblepw": true },
+        { "pwfeedback": true },
+        { "use_pty": false },
+        { "operation": "list_add", "env_keep": ["LD_PRELOAD", "PYTHONPATH"] }
+      ]
+    }
+  ],
+  "Command_Aliases": {
+    "EDITORS": [
+      { "command": "/usr/bin/vim" },
+      { "command": "/usr/bin/nano" }
+    ]
+  },
+  "User_Specs": [
+    {
+      "User_List": [{ "username": "alice" }],
+      "Host_List": [{ "hostname": "ALL" }],
+      "Cmnd_Specs": [
+        {
+          "Options": [{ "authenticate": false }],
+          "Commands": [
+            { "command": "ALL" },
+            { "command": "/usr/bin/find" },
+            { "command": "/usr/bin/cat /var/log/*" },
+            { "command": "/usr/bin/passwd", "negated": true },
+            { "commandalias": "EDITORS" }
+          ]
+        }
+      ]
+    },
+    {
+      "User_List": [{ "username": "bob" }],
+      "Host_List": [{ "hostname": "ALL" }],
+      "Cmnd_Specs": [
+        {
+          "Options": [
+            { "authenticate": true },
+            { "noexec": true }
+          ],
+          "Commands": [
+            { "command": "/usr/bin/python3" }
+          ]
+        }
+      ]
+    }
+  ]
+}

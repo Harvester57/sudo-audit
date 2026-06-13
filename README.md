@@ -29,9 +29,9 @@ It scans sudoers policies for dangerous defaults, security misconfigurations, an
 ### Build from Source
 Compile the binary statically using standard Go tools:
 ```bash
-git clone https://github.com/yourusername/sudo-check.git
-cd sudo-check
-go build -o sudo-check
+git clone https://github.com/Harvester57/sudo-audit.git
+cd sudo-audit
+CGO_ENABLED=0 go build -ldflags="-s -w" -trimpath -o sudo-check
 ```
 
 ---
@@ -62,6 +62,12 @@ Fetch the latest database snapshot dynamically from the online URL `https://gtfo
 ./sudo-check update-db -p gtfobins.json
 ```
 
+### 4. Display Version
+Print the injected build version, commit hash, and build date:
+```bash
+./sudo-check version
+```
+
 ---
 
 ## Command Flags
@@ -78,4 +84,4 @@ Fetch the latest database snapshot dynamically from the online URL `https://gtfo
 ---
 
 ## Developer Guide
-For codebase architecture details, cross-compilation configurations, and test setup, please refer to [AGENTS.md](file:///c:/Users/Florian/OneDrive/Documents/Dev/sudo-check/AGENTS.md).
+For codebase architecture details, cross-compilation configurations, and test setup, please refer to [AGENTS.md](AGENTS.md).

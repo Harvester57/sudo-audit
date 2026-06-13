@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sudo-check/pkg/gtfobins"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	OutputDir      string
-	Formats        string
-	GtfoBinsPath   string
-	CvtSudoersPath string
+	outputDir      string
+	formats        string
+	gtfoBinsPath   string
+	cvtSudoersPath string
 )
 
 var rootCmd = &cobra.Command{
@@ -35,15 +36,15 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&OutputDir, "output-dir", "o", "", "Directory to save the generated reports (if not set, plaintext reports are written to stdout)")
-	rootCmd.PersistentFlags().StringVarP(&Formats, "formats", "f", "text,sarif,pdf,html", "Comma-separated list of output formats (text, sarif, pdf, html)")
-	rootCmd.PersistentFlags().StringVar(&GtfoBinsPath, "gtfobins-path", "", "Path to custom gtfobins.json database snapshot")
-	rootCmd.PersistentFlags().StringVar(&CvtSudoersPath, "cvtsudoers-path", "", "Path to custom cvtsudoers binary")
+	rootCmd.PersistentFlags().StringVarP(&outputDir, "output-dir", "o", "", "Directory to save the generated reports (if not set, plaintext reports are written to stdout)")
+	rootCmd.PersistentFlags().StringVarP(&formats, "formats", "f", "text,sarif,pdf,html", "Comma-separated list of output formats (text, sarif, pdf, html)")
+	rootCmd.PersistentFlags().StringVar(&gtfoBinsPath, "gtfobins-path", "", "Path to custom gtfobins.json database snapshot")
+	rootCmd.PersistentFlags().StringVar(&cvtSudoersPath, "cvtsudoers-path", "", "Path to custom cvtsudoers binary")
 }
 
-// GetFormatsList returns the slice of formatted outputs selected by the user.
-func GetFormatsList() []string {
-	parts := strings.Split(Formats, ",")
+// getFormatsList returns the slice of formatted outputs selected by the user.
+func getFormatsList() []string {
+	parts := strings.Split(formats, ",")
 	var cleaned []string
 	for _, p := range parts {
 		c := strings.TrimSpace(p)
@@ -52,4 +53,12 @@ func GetFormatsList() []string {
 		}
 	}
 	return cleaned
+}
+
+// newGTFOClient creates a GTFObins client using the custom path flag or the embedded database.
+func newGTFOClient() (*gtfobins.Client, error) {
+	if gtfoBinsPath != "" {
+		return gtfobins.NewClientFromFile(gtfoBinsPath)
+	}
+	return gtfobins.NewClient()
 }

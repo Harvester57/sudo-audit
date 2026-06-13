@@ -28,7 +28,8 @@
             { "command": "/usr/bin/find" },
             { "command": "/usr/bin/awk" },
             { "command": "/usr/bin/cat /var/log/*" },
-            { "command": "/usr/bin/passwd", "negated": true }
+            { "command": "/usr/bin/passwd", "negated": true },
+            { "command": "/usr/bin/my-custom-utility-script --run" }
           ]
         }
       ]

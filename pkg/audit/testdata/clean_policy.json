@@ -1,0 +1,24 @@
+{
+  "Defaults": [
+    {
+      "Options": [
+        { "secure_path": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" },
+        { "use_pty": true }
+      ]
+    }
+  ],
+  "User_Specs": [
+    {
+      "User_List": [{ "username": "admin" }],
+      "Host_List": [{ "hostname": "ALL" }],
+      "Cmnd_Specs": [
+        {
+          "Commands": [
+            { "command": "/usr/sbin/reboot" },
+            { "command": "/usr/sbin/shutdown" }
+          ]
+        }
+      ]
+    }
+  ]
+}

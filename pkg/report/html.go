@@ -3,6 +3,7 @@ package report
 import (
 	"html/template"
 	"io"
+	"strings"
 	"sudo-check/pkg/audit"
 )
 
@@ -645,21 +646,19 @@ const htmlTemplateStr = `<!DOCTYPE html>
 // WriteHTMLReport formats the audit results as a premium responsive HTML report.
 func WriteHTMLReport(result *audit.AuditResult, w io.Writer) error {
 	tmpl := template.New("htmlReport").Funcs(template.FuncMap{
-		"hasPrefix": func(s, prefix string) bool {
-			return len(s) >= len(prefix) && s[:len(prefix)] == prefix
-		},
-		"contains": func(s, substr string) bool {
-			// standard string contains logic
-			return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[1:] == substr || stringsContains(s, substr)))
-		},
+		"hasPrefix": strings.HasPrefix,
+		"contains":  strings.Contains,
 		"preGTFOExploitText": func(s string) string {
-			parts := splitExploitText(s)
-			return parts[0]
+			sep := "Example exploit command:\n"
+			if idx := strings.Index(s, sep); idx != -1 {
+				return s[:idx]
+			}
+			return s
 		},
 		"gtfoExploitCommand": func(s string) string {
-			parts := splitExploitText(s)
-			if len(parts) > 1 {
-				return parts[1]
+			sep := "Example exploit command:\n"
+			if idx := strings.Index(s, sep); idx != -1 {
+				return s[idx+len(sep):]
 			}
 			return ""
 		},
@@ -673,31 +672,4 @@ func WriteHTMLReport(result *audit.AuditResult, w io.Writer) error {
 	return t.Execute(w, result)
 }
 
-func stringsContains(s, substr string) bool {
-	// Simple lookup helper
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
 
-// splitExploitText splits the remediation instructions by the "Example exploit command:" separator.
-func splitExploitText(s string) []string {
-	sep := "Example exploit command:\n"
-	idx := stringsIndex(s, sep)
-	if idx == -1 {
-		return []string{s}
-	}
-	return []string{s[:idx], s[idx+len(sep):]}
-}
-
-func stringsIndex(s, sep string) int {
-	for i := 0; i <= len(s)-len(sep); i++ {
-		if s[i:i+len(sep)] == sep {
-			return i
-		}
-	}
-	return -1
-}

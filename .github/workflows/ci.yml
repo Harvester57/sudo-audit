@@ -27,6 +27,11 @@ jobs:
       - name: Verify Dependencies
         run: go mod download
 
+      - name: Check Module Tidiness
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
       - name: Check Code Formatting
         run: |
           if [ -n "$(gofmt -l .)" ]; then
@@ -39,17 +44,32 @@ jobs:
         run: go vet ./...
 
       - name: Run Unit Tests
-        run: go test -v -race ./...
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Display Coverage Summary
+        run: go tool cover -func=coverage.out
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: coverage.out
+          retention-days: 5
 
       - name: Build Standalone Binaries (Cross-Compilation)
         run: |
           mkdir -p dist
+          VERSION=${GITHUB_REF_NAME:-dev}
+          COMMIT=${GITHUB_SHA::8}
+          DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LDFLAGS="-s -w -X main.version=$VERSION -X main.commit=$COMMIT -X main.date=$DATE"
+          
           # Linux AMD64 (Target platform)
-          env GOOS=linux GOARCH=amd64 go build -v -o dist/sudo-check-linux-amd64
+          env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="$LDFLAGS" -trimpath -v -o dist/sudo-check-linux-amd64
           # Linux ARM64 (Target platform)
-          env GOOS=linux GOARCH=arm64 go build -v -o dist/sudo-check-linux-arm64
+          env CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="$LDFLAGS" -trimpath -v -o dist/sudo-check-linux-arm64
           # Windows AMD64 (Local test platform)
-          env GOOS=windows GOARCH=amd64 go build -v -o dist/sudo-check-windows-amd64.exe
+          env CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -trimpath -v -o dist/sudo-check-windows-amd64.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

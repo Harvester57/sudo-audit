@@ -49,10 +49,14 @@ func WriteTextReport(result *audit.AuditResult, w io.Writer) error {
 	}
 	sb.WriteString("\n")
 
-	// Print System Findings
+	// Print System Findings (sorted by severity)
 	if len(result.SystemFindings) > 0 {
-		sb.WriteString(fmt.Sprintf("%s--- System Vulnerability Findings (%d) ---%s\n", colorBold, len(result.SystemFindings), colorReset))
-		for _, f := range result.SystemFindings {
+		sorted := make([]audit.Finding, len(result.SystemFindings))
+		copy(sorted, result.SystemFindings)
+		audit.SortFindingsBySeverity(sorted)
+
+		sb.WriteString(fmt.Sprintf("%s--- System Vulnerability Findings (%d) ---%s\n", colorBold, len(sorted), colorReset))
+		for _, f := range sorted {
 			color := GetSeverityColor(f.Severity)
 			sb.WriteString(fmt.Sprintf("[%s%s%s] %s: %s\n", color, f.Severity, colorReset, f.ID, f.Title))
 			sb.WriteString(fmt.Sprintf("  Description: %s\n", f.Description))
@@ -60,10 +64,14 @@ func WriteTextReport(result *audit.AuditResult, w io.Writer) error {
 		}
 	}
 
-	// Print Policy Findings
+	// Print Policy Findings (sorted by severity)
 	if len(result.PolicyFindings) > 0 {
-		sb.WriteString(fmt.Sprintf("%s--- Sudoers Policy Findings (%d) ---%s\n", colorBold, len(result.PolicyFindings), colorReset))
-		for _, f := range result.PolicyFindings {
+		sorted := make([]audit.Finding, len(result.PolicyFindings))
+		copy(sorted, result.PolicyFindings)
+		audit.SortFindingsBySeverity(sorted)
+
+		sb.WriteString(fmt.Sprintf("%s--- Sudoers Policy Findings (%d) ---%s\n", colorBold, len(sorted), colorReset))
+		for _, f := range sorted {
 			color := GetSeverityColor(f.Severity)
 			sb.WriteString(fmt.Sprintf("[%s%s%s] %s: %s\n", color, f.Severity, colorReset, f.ID, f.Title))
 			if f.User != "" {
@@ -79,38 +87,15 @@ func WriteTextReport(result *audit.AuditResult, w io.Writer) error {
 		sb.WriteString("No sudoers policy misconfigurations found.\n")
 	}
 
-	// Print Summary stats
-	criticalCount := 0
-	highCount := 0
-	mediumCount := 0
-	lowCount := 0
-	infoCount := 0
-
-	count := func(f []audit.Finding) {
-		for _, v := range f {
-			switch v.Severity {
-			case audit.SeverityCritical:
-				criticalCount++
-			case audit.SeverityHigh:
-				highCount++
-			case audit.SeverityMedium:
-				mediumCount++
-			case audit.SeverityLow:
-				lowCount++
-			case audit.SeverityInfo:
-				infoCount++
-			}
-		}
-	}
-	count(result.SystemFindings)
-	count(result.PolicyFindings)
+	// Print Summary stats using helper
+	counts := audit.CountBySeverity(result.SystemFindings, result.PolicyFindings)
 
 	sb.WriteString(fmt.Sprintf("%s--- Summary of Findings ---%s\n", colorBold, colorReset))
-	sb.WriteString(fmt.Sprintf("  %sCRITICAL:%s %d\n", colorRed, colorReset, criticalCount))
-	sb.WriteString(fmt.Sprintf("  %sHIGH:%s     %d\n", colorPurple, colorReset, highCount))
-	sb.WriteString(fmt.Sprintf("  %sMEDIUM:%s   %d\n", colorYellow, colorReset, mediumCount))
-	sb.WriteString(fmt.Sprintf("  %sLOW:%s      %d\n", colorCyan, colorReset, lowCount))
-	sb.WriteString(fmt.Sprintf("  %sINFO:%s     %d\n", colorBlue, colorReset, infoCount))
+	sb.WriteString(fmt.Sprintf("  %sCRITICAL:%s %d\n", colorRed, colorReset, counts[audit.SeverityCritical]))
+	sb.WriteString(fmt.Sprintf("  %sHIGH:%s     %d\n", colorPurple, colorReset, counts[audit.SeverityHigh]))
+	sb.WriteString(fmt.Sprintf("  %sMEDIUM:%s   %d\n", colorYellow, colorReset, counts[audit.SeverityMedium]))
+	sb.WriteString(fmt.Sprintf("  %sLOW:%s      %d\n", colorCyan, colorReset, counts[audit.SeverityLow]))
+	sb.WriteString(fmt.Sprintf("  %sINFO:%s     %d\n", colorBlue, colorReset, counts[audit.SeverityInfo]))
 	sb.WriteString("\n")
 
 	_, err := io.WriteString(w, sb.String())

@@ -3,6 +3,7 @@ package report
 import (
 	"encoding/json"
 	"io"
+	"sudo-check/internal/buildinfo"
 	"sudo-check/pkg/audit"
 )
 
@@ -66,7 +67,7 @@ func WriteSarifReport(result *audit.AuditResult, w io.Writer) error {
 
 	driver := SarifDriver{
 		Name:           "sudo-check",
-		Version:        "1.0.0",
+		Version:        buildinfo.Version,
 		InformationURI: "https://github.com/Florian/sudo-check",
 		Rules:          []SarifRule{},
 	}

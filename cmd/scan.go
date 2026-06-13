@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sudo-check/pkg/audit"
-	"sudo-check/pkg/gtfobins"
 	"sudo-check/pkg/report"
 
 	"github.com/spf13/cobra"
@@ -22,13 +21,7 @@ var scanCmd = &cobra.Command{
 		targetPath := args[0]
 
 		// 1. Initialize GTFObins client
-		var gtfoClient *gtfobins.Client
-		var err error
-		if GtfoBinsPath != "" {
-			gtfoClient, err = gtfobins.NewClientFromFile(GtfoBinsPath)
-		} else {
-			gtfoClient, err = gtfobins.NewClient()
-		}
+		gtfoClient, err := newGTFOClient()
 		if err != nil {
 			return fmt.Errorf("failed to load GTFObins: %w", err)
 		}
@@ -99,13 +92,13 @@ var scanCmd = &cobra.Command{
 			result.Hostname = hostname
 		}
 
-		generated, err := report.GenerateReports(result, GetFormatsList(), OutputDir)
+		generated, err := report.GenerateReports(result, getFormatsList(), outputDir)
 		if err != nil {
 			return fmt.Errorf("failed to generate reports: %w", err)
 		}
 
 		// Print summary
-		if OutputDir != "" {
+		if outputDir != "" {
 			fmt.Printf("\nScan completed successfully! Generated reports:\n")
 			for fmtName, path := range generated {
 				fmt.Printf("  - %s: %s\n", strings.ToUpper(fmtName), path)

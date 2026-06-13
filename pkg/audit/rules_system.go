@@ -166,7 +166,7 @@ func AuditSudoersPermissions(filePath string) []Finding {
 			ID:          "SUDO-SYS-PERM-001",
 			Title:       "Unable to access sudoers file",
 			Description: fmt.Sprintf("Could not stat sudoers file at '%s': %v. Ensure the auditor is running with sufficient privileges.", filePath, err),
-			Severity:    SeverityWarning(),
+			Severity:    SeverityMedium,
 			Remediation: "Run the sudo-check utility with root/sudo privileges.",
 		})
 		return findings
@@ -227,7 +227,3 @@ func AuditSudoersPermissions(filePath string) []Finding {
 	return findings
 }
 
-// SeverityWarning returns SeverityMedium as warning fallback.
-func SeverityWarning() Severity {
-	return SeverityMedium
-}

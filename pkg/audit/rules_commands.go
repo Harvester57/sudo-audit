@@ -165,6 +165,19 @@ func AuditCommands(policy *SudoersPolicy, gtfoClient *gtfobins.Client) []Finding
 							Remediation: fmt.Sprintf("Remove this binary from sudoers or replace it with a wrapper script. Example exploit command:\n%s", bypass.Code),
 						})
 					}
+				} else {
+					if noPasswd {
+						findings = append(findings, Finding{
+							ID:          "SUDO-CMD-005",
+							Title:       "Passwordless Specific Command Execution Allowed (NOPASSWD)",
+							Description: fmt.Sprintf("The user(s) [%s] are permitted to run the specific command '%s' without entering a password (NOPASSWD). While restricted to this binary, any command running passwordless as root expands the local attack surface if it has undisclosed command injection or argument parsing vulnerabilities.", usersStr, cmdStr),
+							Severity:    SeverityLow,
+							User:        usersStr,
+							Host:        hostsStr,
+							Command:     cmdStr,
+							Remediation: "Ensure that passwordless privileges are strictly necessary. If possible, require authentication or implement strict input sanitization inside target binary wrapper scripts.",
+						})
+					}
 				}
 			}
 		}
@@ -173,8 +186,19 @@ func AuditCommands(policy *SudoersPolicy, gtfoClient *gtfobins.Client) []Finding
 	return findings
 }
 
-// resolveCommands recursively resolves command aliases in the sudoers policy structure
+// maxResolveDepth limits recursion depth when resolving command aliases to prevent
+// stack overflow from circular alias definitions (e.g., ALIAS_A → ALIAS_B → ALIAS_A).
+const maxResolveDepth = 10
+
+// resolveCommands recursively resolves command aliases in the sudoers policy structure.
 func resolveCommands(member Member, policy *SudoersPolicy) []Member {
+	return resolveCommandsDepth(member, policy, 0)
+}
+
+func resolveCommandsDepth(member Member, policy *SudoersPolicy, depth int) []Member {
+	if depth >= maxResolveDepth {
+		return []Member{member}
+	}
 	if member.CommandAlias != "" {
 		aliasName := member.CommandAlias
 		if cmds, ok := policy.CommandAliases[aliasName]; ok {
@@ -184,7 +208,7 @@ func resolveCommands(member Member, policy *SudoersPolicy) []Member {
 				if member.Negated {
 					m.Negated = !m.Negated
 				}
-				resolved = append(resolved, resolveCommands(m, policy)...)
+				resolved = append(resolved, resolveCommandsDepth(m, policy, depth+1)...)
 			}
 			return resolved
 		}

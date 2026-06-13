@@ -1,0 +1,23 @@
+{
+  "Command_Aliases": {
+    "CYCLE_A": [
+      { "commandalias": "CYCLE_B" }
+    ],
+    "CYCLE_B": [
+      { "commandalias": "CYCLE_A" }
+    ]
+  },
+  "User_Specs": [
+    {
+      "User_List": [{ "username": "looper" }],
+      "Host_List": [{ "hostname": "ALL" }],
+      "Cmnd_Specs": [
+        {
+          "Commands": [
+            { "commandalias": "CYCLE_A" }
+          ]
+        }
+      ]
+    }
+  ]
+}

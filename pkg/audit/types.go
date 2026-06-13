@@ -1,5 +1,7 @@
 package audit
 
+import "slices"
+
 // Severity represents the severity level of an audit finding.
 type Severity string
 
@@ -10,6 +12,25 @@ const (
 	SeverityLow      Severity = "LOW"
 	SeverityInfo     Severity = "INFO"
 )
+
+// Order returns a numeric priority for severity comparison.
+// Lower values indicate higher severity (CRITICAL=0, INFO=4).
+func (s Severity) Order() int {
+	switch s {
+	case SeverityCritical:
+		return 0
+	case SeverityHigh:
+		return 1
+	case SeverityMedium:
+		return 2
+	case SeverityLow:
+		return 3
+	case SeverityInfo:
+		return 4
+	default:
+		return 5
+	}
+}
 
 // Finding represents a single security issue identified in the audit.
 type Finding struct {
@@ -22,6 +43,30 @@ type Finding struct {
 	Command     string   `json:"command"`     // Command path involved (if command spec check)
 	Context     string   `json:"context"`     // Location/file/line information if available
 	Remediation string   `json:"remediation"` // How to fix the finding
+}
+
+// CountBySeverity returns a map of severity levels to their counts across one or more finding slices.
+func CountBySeverity(findingSlices ...[]Finding) map[Severity]int {
+	counts := map[Severity]int{
+		SeverityCritical: 0,
+		SeverityHigh:     0,
+		SeverityMedium:   0,
+		SeverityLow:      0,
+		SeverityInfo:     0,
+	}
+	for _, findings := range findingSlices {
+		for _, f := range findings {
+			counts[f.Severity]++
+		}
+	}
+	return counts
+}
+
+// SortFindingsBySeverity sorts findings in-place by severity (CRITICAL first).
+func SortFindingsBySeverity(findings []Finding) {
+	slices.SortStableFunc(findings, func(a, b Finding) int {
+		return a.Severity.Order() - b.Severity.Order()
+	})
 }
 
 // Member represents a user, host, runas user, runas group, or command member.

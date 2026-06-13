@@ -1,0 +1,16 @@
+# Compiled binaries
+sudo-check
+sudo-check.exe
+dist/
+
+# Reports output
+reports/
+
+# Test coverage
+*.out
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp

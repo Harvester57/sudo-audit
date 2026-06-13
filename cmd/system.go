@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sudo-check/pkg/audit"
 	"sudo-check/pkg/cvtsudoers"
-	"sudo-check/pkg/gtfobins"
 	"sudo-check/pkg/report"
 
 	"github.com/spf13/cobra"
@@ -27,19 +26,13 @@ converts the active /etc/sudoers policy to JSON, audits it, and audits local sud
 and file permissions.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// 1. Initialize GTFObins client
-		var gtfoClient *gtfobins.Client
-		var err error
-		if GtfoBinsPath != "" {
-			gtfoClient, err = gtfobins.NewClientFromFile(GtfoBinsPath)
-		} else {
-			gtfoClient, err = gtfobins.NewClient()
-		}
+		gtfoClient, err := newGTFOClient()
 		if err != nil {
 			return fmt.Errorf("failed to load GTFObins: %w", err)
 		}
 
 		// 2. Initialize cvtsudoers wrapper
-		wrapper, err := cvtsudoers.NewWrapper(CvtSudoersPath)
+		wrapper, err := cvtsudoers.NewWrapper(cvtSudoersPath)
 		if err != nil {
 			return err
 		}
@@ -97,13 +90,13 @@ and file permissions.`,
 			Hostname:       hostname,
 		}
 
-		generated, err := report.GenerateReports(result, GetFormatsList(), OutputDir)
+		generated, err := report.GenerateReports(result, getFormatsList(), outputDir)
 		if err != nil {
 			return fmt.Errorf("failed to generate reports: %w", err)
 		}
 
 		// Print summary
-		if OutputDir != "" {
+		if outputDir != "" {
 			fmt.Printf("\nSystem audit completed successfully! Generated reports:\n")
 			for fmtName, path := range generated {
 				fmt.Printf("  - %s: %s\n", strings.ToUpper(fmtName), path)

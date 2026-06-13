@@ -78,30 +78,7 @@ func WritePDFReport(result *audit.AuditResult, w io.Writer) error {
 	pdf.Ln(10)
 
 	// --- Statistics Summary Grid ---
-	criticalCount := 0
-	highCount := 0
-	mediumCount := 0
-	lowCount := 0
-	infoCount := 0
-
-	countSev := func(findings []audit.Finding) {
-		for _, f := range findings {
-			switch f.Severity {
-			case audit.SeverityCritical:
-				criticalCount++
-			case audit.SeverityHigh:
-				highCount++
-			case audit.SeverityMedium:
-				mediumCount++
-			case audit.SeverityLow:
-				lowCount++
-			case audit.SeverityInfo:
-				infoCount++
-			}
-		}
-	}
-	countSev(result.SystemFindings)
-	countSev(result.PolicyFindings)
+	counts := audit.CountBySeverity(result.SystemFindings, result.PolicyFindings)
 
 	pdf.SetFont("Helvetica", "B", 12)
 	pdf.SetTextColor(15, 23, 42)
@@ -139,11 +116,11 @@ func WritePDFReport(result *audit.AuditResult, w io.Writer) error {
 	boxHeight := 22.0
 	gap := 5.0
 
-	drawStatBox(xStart, yStart, boxWidth, boxHeight, criticalCount, "Critical", 239, 68, 68)
-	drawStatBox(xStart+(boxWidth+gap)*1, yStart, boxWidth, boxHeight, highCount, "High", 168, 85, 247)
-	drawStatBox(xStart+(boxWidth+gap)*2, yStart, boxWidth, boxHeight, mediumCount, "Medium", 245, 158, 11)
-	drawStatBox(xStart+(boxWidth+gap)*3, yStart, boxWidth, boxHeight, lowCount, "Low", 6, 182, 212)
-	drawStatBox(xStart+(boxWidth+gap)*4, yStart, boxWidth, boxHeight, infoCount, "Info", 59, 130, 246)
+	drawStatBox(xStart, yStart, boxWidth, boxHeight, counts[audit.SeverityCritical], "Critical", 239, 68, 68)
+	drawStatBox(xStart+(boxWidth+gap)*1, yStart, boxWidth, boxHeight, counts[audit.SeverityHigh], "High", 168, 85, 247)
+	drawStatBox(xStart+(boxWidth+gap)*2, yStart, boxWidth, boxHeight, counts[audit.SeverityMedium], "Medium", 245, 158, 11)
+	drawStatBox(xStart+(boxWidth+gap)*3, yStart, boxWidth, boxHeight, counts[audit.SeverityLow], "Low", 6, 182, 212)
+	drawStatBox(xStart+(boxWidth+gap)*4, yStart, boxWidth, boxHeight, counts[audit.SeverityInfo], "Info", 59, 130, 246)
 
 	pdf.SetY(yStart + boxHeight + 15)
 
@@ -153,10 +130,11 @@ func WritePDFReport(result *audit.AuditResult, w io.Writer) error {
 	pdf.Cell(0, 10, "Detailed Audit Findings")
 	pdf.Ln(8)
 
-	// Merge all findings to print them
+	// Merge and sort all findings by severity
 	var allFindings []audit.Finding
 	allFindings = append(allFindings, result.SystemFindings...)
 	allFindings = append(allFindings, result.PolicyFindings...)
+	audit.SortFindingsBySeverity(allFindings)
 
 	if len(allFindings) == 0 {
 		pdf.SetFont("Helvetica", "", 10)
