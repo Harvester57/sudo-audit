@@ -3,6 +3,7 @@ name: Go CI
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
 
@@ -104,3 +105,45 @@ jobs:
           name: sudo-check-binary-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/
           retention-days: 5
+
+  release:
+    name: Create Tagged Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          pattern: sudo-check-binary-*
+          merge-multiple: true
+
+      - name: Generate SBOM
+        uses: sbomify/sbomify-action@ac8b0d423c90447f3011ef8ab5f9ff2e854c6931 # v26.2.0
+        env:
+          LOCK_FILE: go.mod
+          OUTPUT_FILE: dist/sudo-check-sbom.cdx.json
+          COMPONENT_NAME: sudo-check
+          COMPONENT_VERSION: ${{ github.ref_name }}
+          ENRICH: true
+          UPLOAD: false
+
+      - name: Create Release and Upload Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            echo "Release already exists. Uploading assets..."
+            gh release upload "${{ github.ref_name }}" dist/* --clobber
+          else
+            echo "Creating new release..."
+            gh release create "${{ github.ref_name }}" dist/* --title "Release ${{ github.ref_name }}" --generate-notes
+          fi
