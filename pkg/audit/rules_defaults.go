@@ -2,6 +2,7 @@ package audit
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -173,6 +174,88 @@ func AuditDefaults(policy *SudoersPolicy) []Finding {
 			Description: "The 'pwfeedback' option is enabled. It displays asterisks (*) when typing passwords, which visually leaks the password length and has historically had security vulnerabilities.",
 			Severity:    SeverityLow,
 			Remediation: "Remove 'Defaults pwfeedback' or explicitly set 'Defaults !pwfeedback' (asterisks feedback is disabled by default).",
+		})
+	}
+
+	// Check 6: Missing or disabled noexec
+	if !hasOption("noexec") || isFalse("noexec") {
+		findings = append(findings, Finding{
+			ID:          "SUDO-DEF-007",
+			Title:       "Missing or Disabled noexec",
+			Description: "The global 'noexec' flag is not enabled. This allows run commands to execute subprocesses (e.g. shells) unless individually blocked or restricted, increasing shell escape risk.",
+			Severity:    SeverityMedium,
+			Remediation: "Add 'Defaults noexec' globally to the sudoers file to prevent execution of subprocesses by default.",
+		})
+	}
+
+	// Check 7: Missing or disabled requiretty
+	if !hasOption("requiretty") || isFalse("requiretty") {
+		findings = append(findings, Finding{
+			ID:          "SUDO-DEF-008",
+			Title:       "Missing or Disabled requiretty",
+			Description: "The global 'requiretty' flag is not enabled. Without it, commands can be executed from non-interactive environments (like crontab or daemons) which complicates session tracking and audibility.",
+			Severity:    SeverityLow,
+			Remediation: "Add 'Defaults requiretty' globally to the sudoers file.",
+		})
+	}
+
+	// Check 8: Missing or weak umask
+	checkUmask := func() (string, bool) {
+		for _, opt := range globalOptions {
+			if val, ok := opt["umask"]; ok {
+				switch v := val.(type) {
+				case string:
+					return v, true
+				case float64:
+					return fmt.Sprintf("%o", int(v)), true
+				case int:
+					return fmt.Sprintf("%o", v), true
+				}
+			}
+		}
+		return "", false
+	}
+	umaskStr, hasUmask := checkUmask()
+	if !hasUmask {
+		findings = append(findings, Finding{
+			ID:          "SUDO-DEF-009",
+			Title:       "Missing umask Configuration",
+			Description: "The global 'umask' option is not configured. Commands executed under sudo will run with the invoking user's umask, which could result in newly created files having overly permissive access controls.",
+			Severity:    SeverityMedium,
+			Remediation: "Add 'Defaults umask=0077' to the sudoers file to enforce a restrictive umask for all executed commands.",
+		})
+	} else {
+		umaskVal, err := strconv.ParseInt(umaskStr, 8, 64)
+		if err != nil || (umaskVal&0o77) != 0o77 {
+			findings = append(findings, Finding{
+				ID:          "SUDO-DEF-009",
+				Title:       "Weak umask Configuration",
+				Description: fmt.Sprintf("The global umask is set to a weak value '%s'. A weak umask can result in files or directories created by commands running as root being readable or writable by unprivileged users.", umaskStr),
+				Severity:    SeverityMedium,
+				Remediation: "Set 'Defaults umask=0077' in the sudoers file.",
+			})
+		}
+	}
+
+	// Check 9: Missing or disabled ignore_dot
+	if !hasOption("ignore_dot") || isFalse("ignore_dot") {
+		findings = append(findings, Finding{
+			ID:          "SUDO-DEF-010",
+			Title:       "Missing or Disabled ignore_dot",
+			Description: "The global 'ignore_dot' flag is not enabled. Sudo will not ignore the current directory '.' if it is present in the PATH environment variable, which could allow command hijacking if a user runs sudo in a directory containing malicious scripts.",
+			Severity:    SeverityMedium,
+			Remediation: "Add 'Defaults ignore_dot' globally to the sudoers file.",
+		})
+	}
+
+	// Check 10: Missing or disabled env_reset
+	if !hasOption("env_reset") || isFalse("env_reset") {
+		findings = append(findings, Finding{
+			ID:          "SUDO-DEF-011",
+			Title:       "Missing or Disabled env_reset",
+			Description: "The global 'env_reset' flag is not enabled. This allows environment variables to be preserved when running commands under sudo, facilitating environment poisoning and potential privilege escalation.",
+			Severity:    SeverityHigh,
+			Remediation: "Enable 'Defaults env_reset' globally in the sudoers file.",
 		})
 	}
 

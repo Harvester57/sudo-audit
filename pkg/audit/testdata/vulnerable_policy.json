@@ -5,6 +5,8 @@
         { "visiblepw": true },
         { "pwfeedback": true },
         { "use_pty": false },
+        { "env_reset": false },
+        { "umask": 18 },
         { "operation": "list_add", "env_keep": ["LD_PRELOAD", "PYTHONPATH"] }
       ]
     }
@@ -27,7 +29,8 @@
             { "command": "/usr/bin/find" },
             { "command": "/usr/bin/cat /var/log/*" },
             { "command": "/usr/bin/passwd", "negated": true },
-            { "commandalias": "EDITORS" }
+            { "commandalias": "EDITORS" },
+            { "command": "/usr/bin/dmesg" }
           ]
         }
       ]

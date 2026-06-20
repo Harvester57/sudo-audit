@@ -3,7 +3,12 @@
     {
       "Options": [
         { "secure_path": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" },
-        { "use_pty": true }
+        { "use_pty": true },
+        { "noexec": true },
+        { "requiretty": true },
+        { "umask": "0077" },
+        { "ignore_dot": true },
+        { "env_reset": true }
       ]
     }
   ],
@@ -14,8 +19,8 @@
       "Cmnd_Specs": [
         {
           "Commands": [
-            { "command": "/usr/sbin/reboot" },
-            { "command": "/usr/sbin/shutdown" }
+            { "command": "/usr/sbin/reboot \"\"" },
+            { "command": "/usr/sbin/shutdown \"\"" }
           ]
         }
       ]

@@ -148,6 +148,108 @@ func TestAuditDefaults(t *testing.T) {
 		assertFindingPresent(t, findings, "SUDO-DEF-006")
 	})
 
+	t.Run("MissingNoexec", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"use_pty": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-007")
+	})
+
+	t.Run("DisabledNoexec", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"noexec": false}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-007")
+	})
+
+	t.Run("EnabledNoexec", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"noexec": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingAbsent(t, findings, "SUDO-DEF-007")
+	})
+
+	t.Run("MissingRequiretty", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"use_pty": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-008")
+	})
+
+	t.Run("DisabledRequiretty", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"requiretty": false}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-008")
+	})
+
+	t.Run("EnabledRequiretty", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"requiretty": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingAbsent(t, findings, "SUDO-DEF-008")
+	})
+
+	t.Run("MissingUmask", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"use_pty": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-009")
+	})
+
+	t.Run("WeakUmaskString", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"umask": "0022"}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-009")
+	})
+
+	t.Run("WeakUmaskInt", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"umask": 18}}}}} // 0022 in octal is 18
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-009")
+	})
+
+	t.Run("StrongUmaskString", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"umask": "0077"}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingAbsent(t, findings, "SUDO-DEF-009")
+	})
+
+	t.Run("StrongUmaskInt", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"umask": 63}}}}} // 0077 in octal is 63
+		findings := AuditDefaults(policy)
+		assertFindingAbsent(t, findings, "SUDO-DEF-009")
+	})
+
+	t.Run("MissingIgnoreDot", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"use_pty": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-010")
+	})
+
+	t.Run("DisabledIgnoreDot", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"ignore_dot": false}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-010")
+	})
+
+	t.Run("EnabledIgnoreDot", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"ignore_dot": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingAbsent(t, findings, "SUDO-DEF-010")
+	})
+
+	t.Run("MissingEnvReset", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"use_pty": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-011")
+	})
+
+	t.Run("DisabledEnvReset", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"env_reset": false}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingPresent(t, findings, "SUDO-DEF-011")
+	})
+
+	t.Run("EnabledEnvReset", func(t *testing.T) {
+		policy := &SudoersPolicy{Defaults: []DefaultBinding{{Options: []Option{{"env_reset": true}}}}}
+		findings := AuditDefaults(policy)
+		assertFindingAbsent(t, findings, "SUDO-DEF-011")
+	})
+
 	t.Run("CleanPolicy_ZeroFindings", func(t *testing.T) {
 		policy := loadTestPolicy(t, "clean_policy.json")
 		findings := AuditDefaults(policy)
@@ -326,6 +428,45 @@ func TestAuditCommands(t *testing.T) {
 		if len(findings) != 0 {
 			t.Errorf("Expected 0 findings for empty policy, got %d", len(findings))
 		}
+	})
+
+	t.Run("MissingArgumentRestrictions", func(t *testing.T) {
+		policy := &SudoersPolicy{UserSpecs: []UserSpec{{
+			UserList: []Member{{Username: "alice"}},
+			HostList: []Member{{Hostname: "ALL"}},
+			CmndSpecs: []CmndSpec{{
+				Commands: []Member{{Command: "/usr/bin/dmesg"}},
+			}},
+		}}}
+		findings := AuditCommands(policy, gtfoClient)
+		assertFindingPresent(t, findings, "SUDO-CMD-006")
+	})
+
+	t.Run("HasArgumentRestrictions", func(t *testing.T) {
+		policy := &SudoersPolicy{UserSpecs: []UserSpec{{
+			UserList: []Member{{Username: "alice"}},
+			HostList: []Member{{Hostname: "ALL"}},
+			CmndSpecs: []CmndSpec{{
+				Commands: []Member{
+					{Command: "/usr/bin/dmesg \"\""},
+					{Command: "/usr/bin/cat /var/log/messages"},
+				},
+			}},
+		}}}
+		findings := AuditCommands(policy, gtfoClient)
+		assertFindingAbsent(t, findings, "SUDO-CMD-006")
+	})
+
+	t.Run("DirectEditorExecution", func(t *testing.T) {
+		policy := &SudoersPolicy{UserSpecs: []UserSpec{{
+			UserList: []Member{{Username: "alice"}},
+			HostList: []Member{{Hostname: "ALL"}},
+			CmndSpecs: []CmndSpec{{
+				Commands: []Member{{Command: "/usr/bin/vim"}},
+			}},
+		}}}
+		findings := AuditCommands(policy, gtfoClient)
+		assertFindingPresent(t, findings, "SUDO-CMD-007")
 	})
 
 	t.Run("CleanPolicy_ZeroFindings", func(t *testing.T) {
@@ -509,9 +650,16 @@ func TestRunAudit_VulnerablePolicy(t *testing.T) {
 		"SUDO-DEF-004", // dangerous env_keep
 		"SUDO-DEF-005", // visiblepw
 		"SUDO-DEF-006", // pwfeedback
+		"SUDO-DEF-007", // missing or disabled noexec
+		"SUDO-DEF-008", // missing or disabled requiretty
+		"SUDO-DEF-009", // missing or weak umask
+		"SUDO-DEF-010", // missing or disabled ignore_dot
+		"SUDO-DEF-011", // missing or disabled env_reset
 		"SUDO-CMD-001", // negated command
 		"SUDO-CMD-003", // ALL + NOPASSWD
 		"SUDO-CMD-004", // wildcard
+		"SUDO-CMD-006", // missing argument restrictions
+		"SUDO-CMD-007", // direct editor execution
 	}
 
 	for _, id := range expectedIDs {

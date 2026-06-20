@@ -59,6 +59,10 @@ and file permissions.`,
 		permFindings := audit.AuditSudoersPermissions(sudoersFile)
 		systemFindings = append(systemFindings, permFindings...)
 
+		// Audit sudo binary permissions
+		sudoBinaryFindings := audit.AuditSudoBinaryPermissions("/usr/bin/sudo")
+		systemFindings = append(systemFindings, sudoBinaryFindings...)
+
 		// Audit sudo version
 		var sudoVersionStr string
 		sudoCmd := exec.Command("sudo", "--version")

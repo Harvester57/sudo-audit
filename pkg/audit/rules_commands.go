@@ -120,6 +120,42 @@ func AuditCommands(policy *SudoersPolicy, gtfoClient *gtfobins.Client) []Finding
 				exePath := parts[0]
 				binaryName := filepath.Base(exePath)
 
+				// Check 5: Missing Command Argument Restrictions (SUDO-CMD-006)
+				if len(parts) == 1 {
+					findings = append(findings, Finding{
+						ID:          "SUDO-CMD-006",
+						Title:       "Missing Command Argument Restrictions",
+						Description: fmt.Sprintf("The command '%s' allowed for user(s) [%s] does not specify any argument restrictions. This permits the user to run the command with arbitrary arguments, which can be abused to bypass restrictions or inject options.", cmdStr, usersStr),
+						Severity:    SeverityMedium,
+						User:        usersStr,
+						Host:        hostsStr,
+						Command:     cmdStr,
+						Remediation: "Strictly specify the allowed arguments. If the command should be run without any arguments, append empty double quotes '\"\"' to the command (e.g., 'dmesg \"\"').",
+					})
+				}
+
+				// Check 6: Direct Text Editor Execution (SUDO-CMD-007)
+				isEditor := false
+				editors := []string{"vi", "vim", "nano", "emacs", "edit", "joe", "micro"}
+				for _, ed := range editors {
+					if binaryName == ed || strings.HasPrefix(binaryName, ed) {
+						isEditor = true
+						break
+					}
+				}
+				if isEditor {
+					findings = append(findings, Finding{
+						ID:          "SUDO-CMD-007",
+						Title:       "Direct Text Editor Execution via Sudo",
+						Description: fmt.Sprintf("The command '%s' allowed for user(s) [%s] invokes a text editor directly under sudo. Text editors typically allow escaping to a shell or editing arbitrary system files. Use 'sudoedit' instead to safely edit files with current user privileges.", cmdStr, usersStr),
+						Severity:    SeverityHigh,
+						User:        usersStr,
+						Host:        hostsStr,
+						Command:     cmdStr,
+						Remediation: "Replace direct text editor execution rules with 'sudoedit' permissions for specific files.",
+					})
+				}
+
 				bypasses := gtfoClient.CheckBinary(binaryName)
 				if len(bypasses) > 0 {
 					// We matched a binary in GTFObins!

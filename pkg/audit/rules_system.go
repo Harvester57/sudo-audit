@@ -226,3 +226,72 @@ func AuditSudoersPermissions(filePath string) []Finding {
 
 	return findings
 }
+
+// AuditSudoBinaryPermissions checks ownership and permissions of the sudo binary (Linux only).
+func AuditSudoBinaryPermissions(filePath string) []Finding {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+
+	var findings []Finding
+
+	info, err := os.Stat(filePath)
+	if err != nil {
+		findings = append(findings, Finding{
+			ID:          "SUDO-SYS-PERM-006",
+			Title:       "Unable to access sudo binary",
+			Description: fmt.Sprintf("Could not stat sudo binary at '%s': %v.", filePath, err),
+			Severity:    SeverityMedium,
+			Remediation: "Ensure that the sudo binary exists at the default path or check permissions.",
+		})
+		return findings
+	}
+
+	mode := info.Mode().Perm()
+
+	// The sudo binary must have the SUID bit set
+	if info.Mode()&os.ModeSetuid == 0 {
+		findings = append(findings, Finding{
+			ID:          "SUDO-SYS-PERM-007",
+			Title:       "Sudo Binary Missing SUID Bit",
+			Description: fmt.Sprintf("The sudo binary '%s' does not have the setuid (SUID) bit set. Sudo relies on the SUID bit to run commands as root.", filePath),
+			Severity:    SeverityCritical,
+			Remediation: "Run 'chmod u+s /usr/bin/sudo' to restore the SUID bit.",
+		})
+	}
+
+	// Sudo binary should not be writable by group or other
+	if mode&0020 != 0 {
+		findings = append(findings, Finding{
+			ID:          "SUDO-SYS-PERM-008",
+			Title:       "Sudo Binary Writable by Group",
+			Description: fmt.Sprintf("The sudo binary '%s' is writable by group: %s. This allows group members to modify the binary and compromise the system.", filePath, mode),
+			Severity:    SeverityCritical,
+			Remediation: "Run 'chmod g-w /usr/bin/sudo' to remove group write permissions.",
+		})
+	}
+	if mode&0002 != 0 {
+		findings = append(findings, Finding{
+			ID:          "SUDO-SYS-PERM-009",
+			Title:       "Sudo Binary World Writable",
+			Description: fmt.Sprintf("The sudo binary '%s' is world-writable: %s. Any local user can overwrite the sudo binary to escalate privileges.", filePath, mode),
+			Severity:    SeverityCritical,
+			Remediation: "Run 'chmod o-w /usr/bin/sudo' immediately to secure the sudo binary.",
+		})
+	}
+
+	// Owner check
+	if ownerUID, _, err := getUnixOwner(info); err == nil {
+		if ownerUID != 0 {
+			findings = append(findings, Finding{
+				ID:          "SUDO-SYS-PERM-010",
+				Title:       "Sudo Binary Not Owned by Root",
+				Description: fmt.Sprintf("The sudo binary '%s' is owned by UID %d instead of UID 0 (root). This is highly insecure.", filePath, ownerUID),
+				Severity:    SeverityCritical,
+				Remediation: "Run 'chown root:root /usr/bin/sudo' to reset ownership.",
+			})
+		}
+	}
+
+	return findings
+}
